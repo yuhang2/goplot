@@ -1,4 +1,4 @@
-TARGET = gograph
+TARGET = goplot
 SOURCES = *.go
 OBJECTS = $(shell echo $(SOURCES) | sed -e 's,\.go,\.6,g')
 CC = 6g
