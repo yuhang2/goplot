@@ -1,12 +1,10 @@
 package main
 
 import (
-	//"./file";
   "flag";
   "os";
   "io";
   "fmt";
-  //"bufio";
   "bytes";
 )
 
