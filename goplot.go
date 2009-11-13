@@ -7,6 +7,7 @@ import (
   "fmt";
   "bytes";
   "strings";
+  "strconv";
 )
 
 // Plan:
@@ -46,7 +47,10 @@ func main() {
   if lineCount > 0 {
     plotPath = "M"+srcLines[0];
     for ix:=1 ; ix < lineCount ; ix++ {
-      plotPath += "L" + srcLines[ix];
+      x, y, err := parseLine(srcLines[ix]);
+      if err == nil {
+        plotPath += "L" + strconv.Ftoa(x,'f',6) + "," + strconv.Ftoa(y,'f',6) + " ";
+      }
     }
   }
   svgStr := "<?xml version=\"1.0\"?>\n";
@@ -57,4 +61,20 @@ func main() {
   fmt.Println(svgStr);
   
   _=io.WriteFile(*destFileName, strings.Bytes(svgStr), 777);
+}
+
+func parseLine(coords string) (x float, y float, err os.Error) {
+  if len(coords) > 0 {
+    coordsAr := strings.Split(strings.TrimSpace(coords), ",", 3);
+    if len(coordsAr) > 1 {
+      // ignore conversion errors
+      x, err = strconv.Atof(coordsAr[0]);
+      if err == nil {
+        y, err = strconv.Atof(coordsAr[1]);
+      }
+    }
+  } else {
+    err = os.NewError("parseLine: No data");
+  }
+  return x, y, err;
 }
