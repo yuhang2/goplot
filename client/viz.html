@@ -1,0 +1,22 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+    "http://www.w3.org/TR/html4/strict.dtd"
+    >
+<html lang="en">
+<head>
+  <link rel="stylesheet" type="text/css" href="http://jsxgraph.uni-bayreuth.de/distrib/jsxgraph.css" />
+  <script type="text/javascript" src="http://jsxgraph.uni-bayreuth.de/distrib/jsxgraphcore.js"></script>
+  <!-- of course we could use a local copy, but distributing with goplot requires license agreement -->
+  <!-- link rel="stylesheet" type="text/css" href="jsxgraph.css" />
+  <script type="text/javascript" src="jsxgraphcore.js"></script -->
+  <script type="text/javascript" src="graph.js"></script>
+  <script type="text/javascript" src="../vizdata.js"></script>
+  <title>Graph results</title>
+</head>
+<body>
+<div id="jxgbox" class="jxgbox" style="width:500px; height:500px;"></div>
+<script type="text/javascript">
+  var board = makeGraph(series);
+</script>
+Graphing handled by <a href="http://jsxgraph.uni-bayreuth.de/wiki/index.php/Google_style_chart">jsxGraph</a>
+</body>
+</html>
