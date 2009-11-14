@@ -25,10 +25,10 @@ function makeGraph(dataSeries) {
     }
   }
 
-  brd = JXG.JSXGraph.initBoard('jxgbox', {boundingbox: [xmin - 4, ymax + 4, xmax + 4, ymin - 4], axis: true});
+  brd = JXG.JSXGraph.initBoard('jxgbox', {boundingbox: [xmin - 4, ymax + 4, xmax + 4, ymin - 4], axis: true, showNavigation: true});
   brd.suspendUpdate();
 
-  //points.push(brd.createElement('point', [xmin,0], {visible:false, name:'', fixed:true}));
+  points.push(brd.createElement('point', [xmin,0], {visible:false, name:'', fixed:true}));
   for (i=start;i<end;i++) {
 
     x1 = dataSeries[i].x;
@@ -45,7 +45,7 @@ function makeGraph(dataSeries) {
     y.push(y1);
   }
   // Filled area. We need two additional points [start,0] and [end,0]
-  //points.push(brd.createElement('point', [xmax,0], {visible:false, name:'', fixed:true}));
+  points.push(brd.createElement('point', [xmax,0], {visible:false, name:'', fixed:true}));
   brd.createElement('polygon',points, {withLines:false,fillColor:'#e6f2fa'});
  
   // Curve:
@@ -53,6 +53,24 @@ function makeGraph(dataSeries) {
                  {strokeWidth:3, strokeColor:'#0077cc', 
                   highlightStrokeColor:'#0077cc'}
                );
+  
+  // Regression line
+  var rx=[];
+  var ry=[];
+  // left side
+  rx.push(0); // at the y-intercept
+  ry.push(regressionLine.intercept);
+  // right side
+  rx.push(ymax);
+  ry.push(regressionLine.slope * xmax + regressionLine.intercept);  // y = mx + b
+  // plot it
+  brd.createElement('curve', [rx,ry], 
+               {strokeWidth:3, strokeColor:'#eeaacc', 
+                highlightStrokeColor:'#eeaacc'}
+             );
+
+  
+  regressionLine
 
   brd.unsuspendUpdate();
   
