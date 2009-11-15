@@ -1,15 +1,16 @@
 package main
 
 import (
-  "flag";
+  //"flag";
   "os";
   "io";
   "fmt";
-  "bytes";
+  //"bytes";
   "strings";
   "strconv";
   "container/vector";
   "math";
+  "http";
 )
 
 type Point struct {
@@ -18,50 +19,103 @@ type Point struct {
 }
 
 func main() {
-  
+  http.Handle("/goplot/viz", http.HandlerFunc(dataSampleServer));
+  // serve our own files instead of using http.FileServer for very tight access control
+  http.Handle("/goplot/graph.js", http.HandlerFunc(fileServe));
+  // in order
+  err := http.ListenAndServe("192.168.3.235:6060", nil); // todo: clearly this needs to be detected/configured
+  if err != nil {
+          panic("ListenAndServe: ", err.String())
+  }
+}
+
+// serve static files as appropriate
+func fileServe(c *http.Conn, req *http.Request) {
+  cwd, err := os.Getwd();
+  if err==nil {
+    http.ServeFile(c, req, cwd + "/client/graph.js");
+  } else {
+    serveError(c, req, http.StatusInternalServerError); // 500
+  }
+}
+
+// Send the given error code.
+func serveError(c *http.Conn, req *http.Request, code int) {
+    c.SetHeader("Content-Type", "text/plain; charset=utf-8");
+    c.WriteHeader(code);
+    io.WriteString(c, fmt.Sprintf("%d\n",code));
+}
+
+
+
+// processes data samples, sends back data to plot along with regression lines
+func dataSampleServer(c *http.Conn, req *http.Request) {
+  switch req.Method {
+    case "GET":
+      cwd, err := os.Getwd();
+      if err==nil {
+        http.ServeFile(c, req, cwd + "/client/viz.html");
+      } else {
+        serveError(c, req, http.StatusInternalServerError); // 500
+      }
+    case "POST":
+      src := req.FormValue("dataseries");
+      result := dataSampleProcess(src);
+      // send the response
+      _,_=io.WriteString(c, result);
+    default :
+      serveError(c, req, http.StatusMethodNotAllowed);
+  }
+}
+
+// processes data samples, sends back data to plot along with regression lines
+func dataSampleProcess(src string) (results string) {
   const MAXLINES = 1000000;
   
-  sourceFileName := flag.String("i","source.txt","Source data file name");
-  destFileName := flag.String("o","vizdata.js","Output file name");
-
-  sourceData, err := io.ReadFile(*sourceFileName);
-  if err != nil {
-    errStr := err.String();
-    fmt.Fprintf(os.Stderr, "failed to read %s: %s\n", *sourceFileName, errStr);
-  }
-  sourceBuf := bytes.NewBuffer(sourceData);
+  //sourceFileName := flag.String("i","source.txt","Source data file name");
+  //destFileName := flag.String("o","vizdata.js","Output file name");
+  //
+  //sourceData, err := io.ReadFile(*sourceFileName);
+  //if err != nil {
+  //  errStr := err.String();
+  //  fmt.Fprintf(os.Stderr, "failed to read %s: %s\n", *sourceFileName, errStr);
+  //}
+  
+  // get the data from the submitted form
+  //sourceData := req.FormValue("dataseries");
+  
+  //sourceBuf := bytes.NewBuffer(sourceData);
   //fmt.Println(sourceBuf.String());
   
   // split the buffer into an array of strings, one per source line
-  src := sourceBuf.String();
   srcLines := strings.Split(src,"\n",MAXLINES);
 
   lineCount := len(srcLines);
   series := vector.New(0);
 
   // need to test for error before saving the value
-  stmp := Point{x:0.0, y:0.0};
+  //stmp := Point{x:0.0, y:0.0};
   for ix:=0; ix < lineCount; ix++ {
-    stmp , err = parseLine(srcLines[ix]);
+    stmp , err := parseLine(srcLines[ix]);
     if err == nil {
       //fmt.Println(ix, stmp);
       series.Push(stmp);
     }
   }
   fmt.Println(series);
-  jsonStr:="series=[";
+  jsonStr:="{series:[";
   for ix:=0; ix < series.Len(); ix++ {
     fmt.Println(series.At(ix));
     jsonStr += "{x:" + strconv.Ftoa(series.At(ix).(Point).x,'f',3) + ",y:" + strconv.Ftoa(series.At(ix).(Point).y,'f',3) + "},";
   }
-  jsonStr+="];\n";
+  jsonStr += "],\n";
   
   slope, intercept, stdError, correlation := linearRegression(series);
-  jsonStr += fmt.Sprintf("regressionLine={slope:%f,intercept:%f,stdError:%f,correlation:%f};",slope, intercept, stdError, correlation);
+  jsonStr += fmt.Sprintf("regressionLine:{slope:%f,intercept:%f,stdError:%f,correlation:%f},",slope, intercept, stdError, correlation);
+  jsonStr += "}";
   
-  _=io.WriteFile(*destFileName, strings.Bytes(jsonStr), 777);
+  return jsonStr;
 }
-
 
 func parseLine(coords string) (p Point, err os.Error) {
   if len(coords) > 0 {

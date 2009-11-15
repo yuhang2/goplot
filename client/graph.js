@@ -1,6 +1,14 @@
 var graph1;
- 
-function makeGraph(dataSeries) {
+var board;
+
+function makeGraph(pack) {
+  dataSeries = pack.series;
+  plotRegression = false;
+  if (pack.regressionLine) {
+    plotRegression = true;
+    regressionLine = pack.regressionLine;
+  }
+  
   var i, x1, y1;
   var p;
   var points = [];
@@ -54,25 +62,31 @@ function makeGraph(dataSeries) {
                   highlightStrokeColor:'#0077cc'}
                );
   
-  // Regression line
-  var rx=[];
-  var ry=[];
-  // left side
-  rx.push(0); // at the y-intercept
-  ry.push(regressionLine.intercept);
-  // right side
-  rx.push(ymax);
-  ry.push(regressionLine.slope * xmax + regressionLine.intercept);  // y = mx + b
-  // plot it
-  brd.createElement('curve', [rx,ry], 
-               {strokeWidth:3, strokeColor:'#eeaacc', 
-                highlightStrokeColor:'#eeaacc'}
-             );
-
-  
-  regressionLine
+  if (plotRegression) {
+    // Regression line
+    var rx=[];
+    var ry=[];
+    // left side
+    rx.push(0); // at the y-intercept
+    ry.push(regressionLine.intercept);
+    // right side
+    rx.push(ymax);
+    ry.push(regressionLine.slope * xmax + regressionLine.intercept);  // y = mx + b
+    // plot it
+    brd.createElement('curve', [rx,ry], 
+                 {strokeWidth:3, strokeColor:'#eeaacc', 
+                  highlightStrokeColor:'#eeaacc'}
+               );
+  }
 
   brd.unsuspendUpdate();
   
   return brd;
+}
+
+function updateChart(data, textStatus) {
+  console.log(data, textStatus);
+  JXG.JSXGraph.freeBoard(board);
+  makeGraph(data);
+  return false;
 }

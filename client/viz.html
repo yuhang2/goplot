@@ -1,6 +1,4 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
-    "http://www.w3.org/TR/html4/strict.dtd"
-    >
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd" >
 <html lang="en">
 <head>
   <link rel="stylesheet" type="text/css" href="http://jsxgraph.uni-bayreuth.de/distrib/jsxgraph.css" />
@@ -9,14 +7,25 @@
   <!-- link rel="stylesheet" type="text/css" href="jsxgraph.css" />
   <script type="text/javascript" src="jsxgraphcore.js"></script -->
   <script type="text/javascript" src="graph.js"></script>
-  <script type="text/javascript" src="../vizdata.js"></script>
+  <!-- script type="text/javascript" src="../vizdata.js"></script -->
+  <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js"></script>
+  <script type="text/javascript">
+    $(document).ready(function () {
+      board = makeGraph({series:[{x:0,y:0}]});
+      $("#refreshChart").click(function(e) {
+        $.post("/goplot/viz", $("#dataseriesform").serialize(), updateChart, "json");
+        return false;
+      });
+    });
+  </script>
   <title>Graph results</title>
 </head>
 <body>
 <div id="jxgbox" class="jxgbox" style="width:500px; height:500px;"></div>
-<script type="text/javascript">
-  var board = makeGraph(series);
-</script>
+<form id="dataseriesform" method="post" action="/goplot/viz">
+  <textarea id="dataseries" name="dataseries" ></textarea>
+  <input type="submit" id="refreshChart" value="Refresh"/>
+</form>
 <p>Data processed by <a href="http://code.google.com/p/goplot/">GoPlot</a>.</p>
 <p>Cool SVG graphing handled by <a href="http://jsxgraph.uni-bayreuth.de/wiki/index.php/Google_style_chart">jsxGraph</a>.</p>
 </body>
