@@ -1,11 +1,9 @@
 package main
 
 import (
-  //"flag";
   "os";
   "io";
   "fmt";
-  //"bytes";
   "strings";
   "strconv";
   "container/vector";
@@ -25,7 +23,7 @@ func main() {
   // in order
   err := http.ListenAndServe("192.168.3.235:6060", nil); // todo: clearly this needs to be detected/configured
   if err != nil {
-          panic("ListenAndServe: ", err.String())
+    panic("ListenAndServe: ", err.String())
   }
 }
 
@@ -72,33 +70,15 @@ func dataSampleServer(c *http.Conn, req *http.Request) {
 func dataSampleProcess(src string) (results string) {
   const MAXLINES = 1000000;
   
-  //sourceFileName := flag.String("i","source.txt","Source data file name");
-  //destFileName := flag.String("o","vizdata.js","Output file name");
-  //
-  //sourceData, err := io.ReadFile(*sourceFileName);
-  //if err != nil {
-  //  errStr := err.String();
-  //  fmt.Fprintf(os.Stderr, "failed to read %s: %s\n", *sourceFileName, errStr);
-  //}
-  
-  // get the data from the submitted form
-  //sourceData := req.FormValue("dataseries");
-  
-  //sourceBuf := bytes.NewBuffer(sourceData);
-  //fmt.Println(sourceBuf.String());
-  
   // split the buffer into an array of strings, one per source line
   srcLines := strings.Split(src,"\n",MAXLINES);
 
   lineCount := len(srcLines);
   series := vector.New(0);
 
-  // need to test for error before saving the value
-  //stmp := Point{x:0.0, y:0.0};
   for ix:=0; ix < lineCount; ix++ {
     stmp , err := parseLine(srcLines[ix]);
     if err == nil {
-      //fmt.Println(ix, stmp);
       series.Push(stmp);
     }
   }

@@ -85,7 +85,6 @@ function makeGraph(pack) {
 }
 
 function updateChart(data, textStatus) {
-  console.log(data, textStatus);
   JXG.JSXGraph.freeBoard(board);
   makeGraph(data);
   return false;
