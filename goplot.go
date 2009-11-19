@@ -9,6 +9,7 @@ import (
   "container/vector";
   "math";
   "http";
+  "flag";
 )
 
 type Point struct {
@@ -16,12 +17,16 @@ type Point struct {
   y float;
 }
 
+var address = flag.String("l", "0.0.0.0:6060", "Address and port to listen on (ex. 127.0.0.1:1234, defaults to 0.0.0.0:6060");
+
+
 func main() {
+  flag.Parse();
   http.Handle("/goplot/viz", http.HandlerFunc(dataSampleServer));
   // serve our own files instead of using http.FileServer for very tight access control
   http.Handle("/goplot/graph.js", http.HandlerFunc(fileServe));
   // in order
-  err := http.ListenAndServe("192.168.3.235:6060", nil); // todo: clearly this needs to be detected/configured
+  err := http.ListenAndServe(*address, nil); // todo: clearly this needs to be detected/configured
   if err != nil {
     panic("ListenAndServe: ", err.String())
   }
@@ -82,10 +87,8 @@ func dataSampleProcess(src string) (results string) {
       series.Push(stmp);
     }
   }
-  fmt.Println(series);
   jsonStr:="{series:[";
   for ix:=0; ix < series.Len(); ix++ {
-    fmt.Println(series.At(ix));
     jsonStr += "{x:" + strconv.Ftoa(series.At(ix).(Point).x,'f',3) + ",y:" + strconv.Ftoa(series.At(ix).(Point).y,'f',3) + "},";
   }
   jsonStr += "],\n";
@@ -144,7 +147,6 @@ func linearRegression(series *vector.Vector) (slope float, intercept float, stdE
     // guessing the compiler sees this is constant & does sth faster than exponentiation
     sr += (y - (slope*x - intercept)) * (y - (slope*x - intercept));    
   }
-  fmt.Println(st,sr);
   stdError = (float)(math.Sqrt((float64)(sr/(flen-2.0)))); // todo: must check that min 2 points are supplied
   correlation = (float)(math.Sqrt((float64)((st-sr)/st)));
   return slope, intercept, stdError, correlation;
