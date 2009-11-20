@@ -1,6 +1,7 @@
 package main
 
 import (
+  "bytes";
   "os";
   "io";
   "fmt";
@@ -10,6 +11,10 @@ import (
   "math";
   "http";
   "flag";
+  "expvar";
+  "json";
+  . "./constants";
+  _ "./httplog"
 )
 
 type Point struct {
@@ -17,18 +22,73 @@ type Point struct {
   y float;
 }
 
-var address = flag.String("l", "0.0.0.0:6060", "Address and port to listen on (ex. 127.0.0.1:1234, defaults to 0.0.0.0:6060");
+type Config struct {
+  Address string;
+  CustomLog string;
+  LogFormat []string;
+}
 
+func (pt *Point) String() string	{ return fmt.Sprintf("(%f,%f)", pt.x, pt.y) }
+
+func (pt *Point) ServeHTTP(c *http.Conn, req *http.Request) {
+	switch req.Method {
+	case "GET":
+		pt.x++
+	case "POST":
+    pt.x, _ = strconv.Atof(req.FormValue("x"));
+    pt.y, _ = strconv.Atof(req.FormValue("y"));
+	}
+	fmt.Fprintf(c, "point is (%f,%f)\n", pt.x, pt.y);
+}
+
+var configFlag = flag.String("c", "server.conf", "Config file name");
+var helpFlag = flag.Bool("h", false, "This help");
+
+// next variables are also available in server config file
+var addressFlag = flag.String("l", "0.0.0.0:6060", "Address and port to listen on (ex. 127.0.0.1:1234");
 
 func main() {
+  // todo: config file overrides command line flags, this feels incorrect
   flag.Parse();
+  
+  if *helpFlag {
+    flag.PrintDefaults();
+    os.Exit(EXIT_SUCCESS);
+  }
+  
+  configJsonBytes, err := io.ReadFile(*configFlag);
+  if err != nil {
+    fmt.Fprintf(os.Stderr, "failed to read %s: %s\n", *configFlag, err.String());
+    os.Exit(EXIT_NO_CONFIG);
+  }
+  // split the buffer into an array of strings, one per source line
+  configJson := bytes.NewBuffer(configJsonBytes).String();
+
+  var config = Config{ *addressFlag, "nolog", nil };
+  ok, errtok := json.Unmarshal(configJson, &config);
+  if !ok {
+    fmt.Fprintf(os.Stderr, "Config error at %s (while reading %s)\n", strconv.Quote(errtok), *configFlag);
+    os.Exit(EXIT_CONFIG_PARSE);
+  }
+  
+  fmt.Printf("%s\n",config.Address);
+  fmt.Printf("%s\n",config.CustomLog);
+  
+	demoPoint := new(Point);
+  demoPoint.x = 0.0;
+  demoPoint.y = 0.0;
+  
+	http.Handle("/point", demoPoint);
+	expvar.Publish("point", demoPoint);
+  
   http.Handle("/goplot/viz", http.HandlerFunc(dataSampleServer));
   // serve our own files instead of using http.FileServer for very tight access control
   http.Handle("/goplot/graph.js", http.HandlerFunc(fileServe));
   // in order
-  err := http.ListenAndServe(*address, nil); // todo: clearly this needs to be detected/configured
+  err = http.ListenAndServe(config.Address, nil);
   if err != nil {
-    panic("ListenAndServe: ", err.String())
+    fmt.Fprintf(os.Stderr, "ListenAndServe on %s got: %s\n", config.Address, err.String());
+    os.Exit(EXIT_CANT_LISTEN);
   }
 }
 
@@ -48,8 +108,6 @@ func serveError(c *http.Conn, req *http.Request, code int) {
     c.WriteHeader(code);
     io.WriteString(c, fmt.Sprintf("%d\n",code));
 }
-
-
 
 // processes data samples, sends back data to plot along with regression lines
 func dataSampleServer(c *http.Conn, req *http.Request) {
